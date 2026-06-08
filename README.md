@@ -37,6 +37,33 @@ docker build -t dagster-exporter .
 docker run -e DAGSTER_URL=http://dagster-webserver:3000 -p 8000:8000 dagster-exporter
 ```
 
+### Build and push to ECR
+
+```bash
+# Login to ECR
+make ecr-login
+
+# Build for linux/amd64 (default)
+make build TAG=v0.1.0
+
+# Push to ECR
+make push TAG=v0.1.0
+
+# Build and push in one step
+make release TAG=v0.1.0
+
+# Re-tag a released version as latest (same digest, no rebuild)
+make tag-latest TAG=v0.1.0
+```
+
+Override variables as needed:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TAG` | `latest` | Image tag |
+| `PLATFORM` | `linux/amd64` | Target platform |
+| `REGION` | `ap-northeast-1` | AWS region for ECR login |
+
 ### docker-compose (sidecar)
 
 ```yaml
