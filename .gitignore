@@ -1,0 +1,9 @@
+# binary
+dagster-exporter
+
+# Go build cache
+*.test
+*.out
+
+# environment
+.env
