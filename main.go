@@ -67,6 +67,7 @@ type workspaceData struct {
 type locationEntry struct {
 	LocationOrLoadError struct {
 		Typename     string       `json:"__typename"`
+		Name         string       `json:"name"`
 		Repositories []repository `json:"repositories"`
 	} `json:"locationOrLoadError"`
 }
@@ -127,6 +128,7 @@ const workspaceQuery = `{
         locationOrLoadError {
           __typename
           ... on RepositoryLocation {
+            name
             repositories {
               name
               schedules {
@@ -184,22 +186,22 @@ func newCollector(url string, runsLimit int) *dagsterCollector {
 		scheduleRunning: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "schedule", "running"),
 			"1 if the schedule is running, 0 if stopped",
-			[]string{"schedule_name", "repository"}, nil,
+			[]string{"schedule_name", "repository", "location"}, nil,
 		),
 		scheduleLastTick: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "schedule", "last_tick_timestamp_seconds"),
 			"Unix timestamp of the schedule's last tick",
-			[]string{"schedule_name", "repository"}, nil,
+			[]string{"schedule_name", "repository", "location"}, nil,
 		),
 		sensorRunning: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "sensor", "running"),
 			"1 if the sensor is running, 0 if stopped",
-			[]string{"sensor_name", "repository"}, nil,
+			[]string{"sensor_name", "repository", "location"}, nil,
 		),
 		sensorLastTick: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "sensor", "last_tick_timestamp_seconds"),
 			"Unix timestamp of the sensor's last tick",
-			[]string{"sensor_name", "repository"}, nil,
+			[]string{"sensor_name", "repository", "location"}, nil,
 		),
 	}
 }
@@ -298,16 +300,16 @@ func (c *dagsterCollector) collectWorkspace(ch chan<- prometheus.Metric) error {
 		for _, repo := range loc.Repositories {
 			for _, s := range repo.Schedules {
 				running := boolToFloat(s.ScheduleState.Status == "RUNNING")
-				ch <- prometheus.MustNewConstMetric(c.scheduleRunning, prometheus.GaugeValue, running, s.Name, repo.Name)
+				ch <- prometheus.MustNewConstMetric(c.scheduleRunning, prometheus.GaugeValue, running, s.Name, repo.Name, loc.Name)
 				if len(s.ScheduleState.Ticks) > 0 {
-					ch <- prometheus.MustNewConstMetric(c.scheduleLastTick, prometheus.GaugeValue, s.ScheduleState.Ticks[0].Timestamp, s.Name, repo.Name)
+					ch <- prometheus.MustNewConstMetric(c.scheduleLastTick, prometheus.GaugeValue, s.ScheduleState.Ticks[0].Timestamp, s.Name, repo.Name, loc.Name)
 				}
 			}
 			for _, s := range repo.Sensors {
 				running := boolToFloat(s.SensorState.Status == "RUNNING")
-				ch <- prometheus.MustNewConstMetric(c.sensorRunning, prometheus.GaugeValue, running, s.Name, repo.Name)
+				ch <- prometheus.MustNewConstMetric(c.sensorRunning, prometheus.GaugeValue, running, s.Name, repo.Name, loc.Name)
 				if len(s.SensorState.Ticks) > 0 {
-					ch <- prometheus.MustNewConstMetric(c.sensorLastTick, prometheus.GaugeValue, s.SensorState.Ticks[0].Timestamp, s.Name, repo.Name)
+					ch <- prometheus.MustNewConstMetric(c.sensorLastTick, prometheus.GaugeValue, s.SensorState.Ticks[0].Timestamp, s.Name, repo.Name, loc.Name)
 				}
 			}
 		}
